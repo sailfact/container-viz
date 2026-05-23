@@ -25,7 +25,12 @@ pub struct TlsConfig {
 }
 
 impl AppConfig {
-    pub fn new(safe_mode: bool, tick_rate: u64, log_tail_lines: u64, hosts: Vec<HostConfig>) -> Self {
+    pub fn new(
+        safe_mode: bool,
+        tick_rate: u64,
+        log_tail_lines: u64,
+        hosts: Vec<HostConfig>,
+    ) -> Self {
         Self {
             safe_mode,
             tick_rate,
