@@ -1,0 +1,340 @@
+classDiagram
+    %% ── Config ──────────────────────────────────────────────────────────────
+
+    class AppConfig {
+        +safe_mode: bool
+        +tick_rate_ms: u64
+        +log_tail_lines: u64
+        +hosts: Vec~HostConfig~
+        +load() Result~AppConfig~
+        +save() Result~()~
+        +add_host(host: HostConfig)
+        +remove_host(name: &str) bool
+        +path() PathBuf
+    }
+
+    class HostConfig {
+        +name: String
+        +connection: ConnectionType
+        +display_name() String
+        +is_local() bool
+    }
+
+    class ConnectionType {
+        <<enumeration>>
+        UnixSocket(PathBuf)
+        Tcp~host String, port u16, tls Option~TlsConfig~~
+    }
+
+    class TlsConfig {
+        +cert_path: PathBuf
+        +ca_cert: Option~PathBuf~
+        +verify: bool
+    }
+
+    %% ── App State ───────────────────────────────────────────────────────────
+
+    class AppState {
+        +hosts: Vec~HostState~
+        +active_tab: usize
+        +mode: AppMode
+        +safe_mode: bool
+        +log_buffer: VecDeque~String~
+        +log_follow: bool
+        +log_filter: Option~String~
+        +show_detail: bool
+        +pending_action: Option~PendingAction~
+        +command_query: String
+        +status_message: Option~StatusMessage~
+        +new(config: AppConfig) AppState
+        +active_host() &HostState
+        +active_host_mut() &mut HostState
+        +next_tab()
+        +prev_tab()
+        +apply_update(host_idx: usize, update: HostUpdate)
+        +dispatch_command(host_idx: usize, cmd: HostCommand)
+        +set_mode(mode: AppMode)
+        +toggle_safe_mode()
+        +toggle_detail()
+        +set_pending_action(action: PendingAction)
+        +clear_pending_action()
+        +set_status(msg: String, level: MessageLevel)
+        +tick_status()
+    }
+
+    class AppMode {
+        <<enumeration>>
+        Normal
+        Logs
+        Command
+        HostManager
+        Help
+    }
+
+    class PendingAction {
+        +label: String
+        +command: HostCommand
+        +host_index: usize
+    }
+
+    class StatusMessage {
+        +text: String
+        +level: MessageLevel
+        +ttl_ticks: u8
+        +is_expired() bool
+        +decrement()
+    }
+
+    class MessageLevel {
+        <<enumeration>>
+        Info
+        Warn
+        Error
+        +colour() Color
+    }
+
+    %% ── Host State ──────────────────────────────────────────────────────────
+
+    class HostState {
+        +config: HostConfig
+        +status: HostStatus
+        +containers: Vec~ContainerInfo~
+        +selected: usize
+        +compose_groups: HashMap~String, Vec~usize~~
+        +new(config: HostConfig) HostState
+        +apply_container_list(containers: Vec~ContainerInfo~)
+        +apply_stats_update(id: &str, cpu: f64, mem: u64, net_rx: u64, net_tx: u64)
+        +append_log_line(id: &str, line: String)
+        +selected_container() Option~&ContainerInfo~
+        +next_container()
+        +prev_container()
+        +jump_top()
+        +jump_bottom()
+        +running_count() usize
+        +total_count() usize
+        +grouped_by_compose() Vec~(Option~String~, Vec~&ContainerInfo~)~
+    }
+
+    class HostStatus {
+        <<enumeration>>
+        Connecting
+        Connected
+        Unreachable(String)
+        +label() &str
+        +colour() Color
+        +icon() &str
+    }
+
+    %% ── Container ───────────────────────────────────────────────────────────
+
+    class ContainerInfo {
+        +id: String
+        +name: String
+        +image: String
+        +state: ContainerState
+        +status: String
+        +uptime: Option~Duration~
+        +compose_project: Option~String~
+        +ports: Vec~PortBinding~
+        +cpu_percent: f64
+        +mem_usage: u64
+        +mem_limit: u64
+        +cpu_history: VecDeque~f64~
+        +mem_history: VecDeque~u64~
+        +net_rx: u64
+        +net_tx: u64
+        +log_lines: VecDeque~String~
+        +from_bollard(summary: ContainerSummary) ContainerInfo
+        +push_cpu_sample(cpu: f64)
+        +push_mem_sample(mem: u64)
+        +cpu_sparkline() &[f64]
+        +mem_sparkline() &[u64]
+        +formatted_uptime() String
+        +mem_percent() f64
+        +is_running() bool
+        +short_id() &str
+    }
+
+    class ContainerState {
+        <<enumeration>>
+        Running
+        Paused
+        Exited
+        Restarting
+        Dead
+        Unknown
+        +colour() Color
+        +icon() &str
+        +label() &str
+    }
+
+    class PortBinding {
+        +host_ip: String
+        +host_port: u16
+        +container_port: u16
+        +protocol: String
+        +display() String
+    }
+
+    %% ── Messaging ───────────────────────────────────────────────────────────
+
+    class HostUpdate {
+        <<enumeration>>
+        ContainerList(Vec~ContainerInfo~)
+        StatsUpdate~id String, cpu f64, mem u64, net_rx u64, net_tx u64~
+        LogLine~id String, line String~
+        StatusChange(HostStatus)
+    }
+
+    class HostCommand {
+        <<enumeration>>
+        StartContainer(String)
+        StopContainer(String)
+        RestartContainer(String)
+        RemoveContainer(String)
+        ExecShell(String)
+        PullImage(String)
+        TailLogs~id String, lines u64~
+        Shutdown
+        +is_destructive() bool
+        +label() &str
+    }
+
+    class AppEvent {
+        <<enumeration>>
+        Tick
+        Key(KeyCode)
+        HostUpdate~idx usize, update HostUpdate~
+        Resize~width u16, height u16~
+    }
+
+    %% ── Host Task ───────────────────────────────────────────────────────────
+
+    class HostTask {
+        -config: HostConfig
+        -tx: Sender~HostUpdate~
+        -rx: Receiver~HostCommand~
+        -retry_interval_s: u64
+        +new(config: HostConfig, tx: Sender~HostUpdate~, rx: Receiver~HostCommand~) HostTask
+        +run() Result~()~
+        -connect() Result~Docker~
+        -poll_containers(docker: &Docker) Result~()~
+        -stream_stats(docker: &Docker, id: String) Result~()~
+        -tail_logs(docker: &Docker, id: String, lines: u64) Result~()~
+        -handle_command(docker: &Docker, cmd: HostCommand) Result~()~
+        -retry_loop()
+        -build_container_info(summary: ContainerSummary) ContainerInfo
+        -calc_cpu_percent(prev: &StatsState, curr: &StatsState) f64
+    }
+
+    %% ── UI Layer ────────────────────────────────────────────────────────────
+
+    class Renderer {
+        +render(f: &mut Frame, state: &AppState)
+        -build_layout(area: Rect) Layout
+        -render_overlays(f: &mut Frame, state: &AppState)
+    }
+
+    class TabBar {
+        +render(f: &mut Frame, area: Rect, state: &AppState)
+        -tab_style(status: &HostStatus, active: bool) Style
+    }
+
+    class ContainerList {
+        +render(f: &mut Frame, area: Rect, host: &HostState)
+        -build_row(c: &ContainerInfo) Row
+        -state_colour(state: &ContainerState) Color
+        -column_widths() Vec~Constraint~
+    }
+
+    class DetailPanel {
+        +render(f: &mut Frame, area: Rect, container: &ContainerInfo)
+        -render_metadata(f: &mut Frame, area: Rect, container: &ContainerInfo)
+        -render_sparklines(f: &mut Frame, area: Rect, container: &ContainerInfo)
+        -format_ports(ports: &[PortBinding]) String
+    }
+
+    class LogViewer {
+        +render(f: &mut Frame, area: Rect, state: &AppState)
+        -apply_filter(lines: &VecDeque~String~, filter: &str) Vec~&String~
+        -highlight_filter(line: &str, filter: &str) Line
+    }
+
+    class Statusline {
+        +render(f: &mut Frame, area: Rect, state: &AppState)
+        -mode_label(mode: &AppMode) &str
+        -mode_colour(mode: &AppMode) Color
+        -safe_mode_indicator(safe_mode: bool) Span
+    }
+
+    class ConfirmOverlay {
+        +render(f: &mut Frame, area: Rect, action: &PendingAction)
+        -centred_rect(percent_x: u16, percent_y: u16, area: Rect) Rect
+    }
+
+    class HostManagerOverlay {
+        +render(f: &mut Frame, area: Rect, config: &AppConfig)
+        -render_host_list(f: &mut Frame, area: Rect, hosts: &[HostConfig])
+        -render_host_form(f: &mut Frame, area: Rect)
+    }
+
+    class HelpOverlay {
+        +render(f: &mut Frame, area: Rect, mode: &AppMode)
+        -bindings_for_mode(mode: &AppMode) Vec~(&str, &str)~
+    }
+
+    class CommandPalette {
+        +render(f: &mut Frame, area: Rect, query: &str, host: &HostState)
+        -filtered_actions(query: &str, host: &HostState) Vec~PaletteAction~
+        -score(query: &str, label: &str) u32
+    }
+
+    class PaletteAction {
+        +label: String
+        +description: String
+        +command: HostCommand
+        +available: bool
+    }
+
+    %% ── Relationships ───────────────────────────────────────────────────────
+
+    AppConfig "1" *-- "1..*" HostConfig : contains
+    HostConfig "1" *-- "1" ConnectionType : has
+    ConnectionType ..> TlsConfig : uses when Tcp+TLS
+
+    AppState "1" *-- "1..*" HostState : contains
+    AppState "1" *-- "1" AppMode : has
+    AppState "1" *-- "0..1" PendingAction : has
+    AppState "1" *-- "0..1" StatusMessage : has
+    AppState ..> AppConfig : initialised from
+    StatusMessage "1" *-- "1" MessageLevel : has
+    PendingAction "1" *-- "1" HostCommand : wraps
+
+    HostState "1" *-- "1" HostConfig : owns
+    HostState "1" *-- "1" HostStatus : has
+    HostState "1" *-- "0..*" ContainerInfo : contains
+
+    ContainerInfo "1" *-- "1" ContainerState : has
+    ContainerInfo "1" *-- "0..*" PortBinding : has
+
+    HostTask "1" *-- "1" HostConfig : owns
+    HostTask ..> HostUpdate : sends via mpsc
+    HostTask ..> HostCommand : receives via mpsc
+    HostTask ..> ContainerInfo : creates
+
+    AppState ..> HostUpdate : consumes
+    AppState ..> HostCommand : dispatches
+
+    Renderer ..> AppState : reads
+    Renderer --> TabBar : delegates
+    Renderer --> ContainerList : delegates
+    Renderer --> DetailPanel : delegates
+    Renderer --> LogViewer : delegates
+    Renderer --> Statusline : delegates
+    Renderer --> ConfirmOverlay : delegates when pending_action
+    Renderer --> HostManagerOverlay : delegates when HostManager mode
+    Renderer --> HelpOverlay : delegates when Help mode
+    Renderer --> CommandPalette : delegates when Command mode
+
+    CommandPalette "1" *-- "0..*" PaletteAction : generates
+    PaletteAction "1" *-- "1" HostCommand : maps to
