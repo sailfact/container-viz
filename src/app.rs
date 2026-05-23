@@ -9,7 +9,7 @@ pub struct AppConfig {
 
 pub struct HostConfig {
     pub name: String,
-    pub connection: ConnetionType,
+    pub connection: ConnectionType,
 }
 
 pub struct ConnectionType {
@@ -25,17 +25,20 @@ pub struct TlsConfig {
 }
 
 impl AppConfig {
-    pub fn new(
-        safe_mode: bool,
-        tick_rate: u64,
-        log_tail_lines: u64,
-        hosts: Vec<HostConfig>,
-    ) -> Self {
+    pub fn new(safe_mode: bool, tick_rate: u64, log_tail_lines: u64, hosts: Vec<HostConfig>,) -> Self {
         Self {
             safe_mode,
             tick_rate,
             log_tail_lines,
             hosts,
         }
+    }
+
+    pub fn load(&self) -> Result<AppConfig> {
+        // Todo
+    }
+
+    pub fn save(&self) -> Result<()> {
+        
     }
 }
