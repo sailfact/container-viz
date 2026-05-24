@@ -1,3 +1,4 @@
+/// lib.rs
 mod app;
 mod config;
 mod docker;
