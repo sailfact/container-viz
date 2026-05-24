@@ -2,7 +2,11 @@ use crate::types::{HostCommand, Color};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum AppMode {
-    
+    Normal,
+    Logs,
+    Command,
+    HostManager,
+    Help,
 }
 
 #[derive(Debug, PartialEq, Clone)]

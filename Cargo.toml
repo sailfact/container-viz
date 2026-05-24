@@ -3,12 +3,20 @@ name = "container-viz"
 version = "0.1.0"
 edition = "2024"
 
+[[bin]]
+name = "container-viz"
+path = "src/main.rs"
+
+[lib]
+name = "container_viz"
+path = "src/lib.rs"
+
 [dependencies]
 anyhow = "1.0.102"
 bollard = "0.21.0"
 crossterm = "0.29.0"
 human_bytes = "0.4.3"
 ratatui = "0.30.0"
-serde = "1.0.228"
-tokio = "1.52.3"
+serde = { version = "1.0.228", features = ["derive"] }  # needs derive
+tokio = { version = "1.52.3", features = ["full"] }     # needs async runtime
 toml = "1.1.2"

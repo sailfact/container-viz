@@ -1,7 +1,7 @@
 /// lib.rs
-mod app;
-mod config;
-mod docker;
-mod event;
-mod types;
-mod ui;
+pub mod app;
+pub mod config;
+pub mod docker;
+pub mod event;
+pub mod types;
+pub mod ui;

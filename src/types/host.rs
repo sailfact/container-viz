@@ -1,4 +1,4 @@
-use crate::types::Color;
+use super::{PathBuf, Color, Serialize, Deserialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "connection", rename_all = "lowercase")]

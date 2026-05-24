@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{fmt::format, path::PathBuf};
 use anyhow::Result;
 
 use crate::types::ConnectionType;
@@ -45,21 +45,25 @@ impl AppConfig {
     
     // add_host()
     // Appends a new HostConfig to the hosts list
-    pub fn add_host(&self, host: HostConfig) {
-        todo!()
+    pub fn add_host(&mut self, host: HostConfig) {
+        self.hosts.push(host);
     }
     
     // removes_host()
     // Finds and removes a host by name, 
     // returns bool indicating whether it was found
-    pub fn remove_host(&self, name: &str) {
-        todo!()
+    pub fn remove_host(&mut self, name: &str) -> bool {
+        self.hosts.iter().position(|h| h.name == name).map_or(false, |idx| {
+            self.hosts.remove(idx);
+            true
+        })
     }
     
     // path()
     // Returns the resolved filesystem path to the config file
     pub fn path(&self) -> PathBuf {
-        todo!()
+        let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
+        PathBuf::from(home).join(".config").join("container-viz").join("config.toml")
     }
 }
 
@@ -69,10 +73,10 @@ impl HostConfig {
     }
     //Returns a human-readable label for the tab bar (could be name or derived from connection details)
     pub fn display_name(&self) -> String {
-        todo!()
+        format!("{} ({})", self.name, self.connection.bollard_addr())
     }
     // Returns true if the connection is a local Unix socket, used to skip TLS logic
     pub fn is_local(&self) -> bool {
-        todo!()
+        self.connection.
     }
 }
