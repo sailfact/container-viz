@@ -1,5 +1,7 @@
-use std::{fmt::format, path::PathBuf};
+use std::path::PathBuf;
+use std::fs;
 use anyhow::Result;
+use serde::{Deserialize, Serialize};
 
 use crate::types::ConnectionType;
 // use crate::types::TlsConfig;
@@ -8,15 +10,21 @@ use crate::types::ConnectionType;
 // The top-level configuration object, 
 // loaded from ~/.config/container-viz/config.toml. 
 // It holds all user preferences and the list of Docker hosts to connect to.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "config", rename_all = "lowercase")]
 pub struct AppConfig {
-    pub safe_mode: bool,
-    pub tick_rate: u64,
+    #[serde(default)]
+    pub safe_mode:      bool,
+    pub tick_rate:      u64,
     pub log_tail_lines: u64,
-    pub hosts: Vec<HostConfig>,
+    pub hosts:          Vec<HostConfig>,
 }
 
 // Represents a single Docker host entry from config — its name and how to connect to it.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "host", rename_all = "lowercase")]
 pub struct HostConfig {
+    #[serde(flatten)]
     pub name:       String,
     pub connection: ConnectionType,
 }
@@ -34,13 +42,22 @@ impl AppConfig {
     // Reads and parses the TOML config file from disk, 
     // returning an error if the file is missing or malformed
     pub fn load(&self) -> Result<AppConfig> {
-        todo!()
+        let path = self.path();
+        let contents = fs::read_to_string(path)?;
+        let config: AppConfig = toml::from_str(&contents)?;
+        Ok(config)
     }
     // save()
     // Writes the current config back to disk, 
     // used after adding/removing hosts
     pub fn save(&self) -> Result<()> {
-        todo!()
+        let path = self.path();
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        let contents = toml::to_string_pretty(self)?;
+        fs::write(path, contents)?;
+        Ok(())
     }
     
     // add_host()
@@ -77,6 +94,6 @@ impl HostConfig {
     }
     // Returns true if the connection is a local Unix socket, used to skip TLS logic
     pub fn is_local(&self) -> bool {
-        self.connection.
+        self.connection.is_local()
     }
 }
