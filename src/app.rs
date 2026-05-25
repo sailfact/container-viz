@@ -38,13 +38,13 @@ impl AppState {
     // active_host()
     // Returns a shared reference to the currently active `HostState`.
     pub fn active_host(&self) -> &HostState {
-        todo!()
+        &self.hosts[self.active_tab]
     }
     
     // active_host_mut()
     // Returns a mutable reference to the currently active `HostState`.
-    pub fn active_host_mut(&self) -> &mut HostState {
-        todo!()
+    pub fn active_host_mut(&mut self) -> Option<&mut HostState> {
+        self.hosts.get_mut(self.active_tab)
     }
     
     // next_tab()
@@ -74,16 +74,60 @@ impl AppState {
     // apply_update()
     // Apply a 'HostUpdate' from a 'HostTask' to the matching host
     pub fn apply_update(&mut self, host_idx: usize, update: HostUpdate) {
-        todo!()
+        let Some(host) = self.hosts.get_mut(host_idx) else {
+        self.set_status(
+            format!("Received update for unknown host index {host_idx}"),
+            MessageLevel::Warn,
+        );
+        return;
+    };
+
+    match update {
+        HostUpdate::ContainerList(containers) => {
+            host.apply_container_list(containers);
+        }
+
+        HostUpdate::StatsUpdate { id, cpu, mem, net_rx, net_tx } => {
+            host.apply_stats_update(&id, cpu, mem, net_rx, net_tx);
+        }
+
+        HostUpdate::LogLine { id, line } => {
+            host.append_log_line(&id, line);
+        }
+
+        HostUpdate::StatusChange(status) => {
+            host.status = status;
+        }
+    }  
     }
     
     /* Outbound Commands */
     // dispatch_command()
     // dispatch a 'HostCommand' to the given hosts back-channel
     pub fn dispatch_command(&mut self, host_idx: usize, cmd: HostCommand) {
-        todo!()
+        if self.safe_mode && cmd.is_destructive() {
+            // hold it, show confirmation dialog
+            self.set_pending_action(PendingAction { 
+                    label: cmd.label().to_string(), 
+                    command: cmd, 
+                    host_index: host_idx 
+            });
+            return;
+        }
+        self.send_command(host_idx, cmd); // only reaches here if safe to proceed
+    }
+    // confirm_pending_action
+    pub fn confirm_pending_action(&mut self) {
+        if let Some(action) = self.pending_action.take() {
+            self.dispatch_command(action.host_index, action.command);
+        }
     }
     
+    fn send_command(&mut self, host_idx: usize, cmd: HostCommand) {
+        if let Some(tx) = self.command_tx.get(host_idx) {
+            let _ = tx.try_send(cmd);
+        }
+    }
     /* Mode Shifts */
     // set_mode
     pub fn set_mode(&mut self, mode: AppMode) {
@@ -109,12 +153,6 @@ impl AppState {
     // set_pending_action
     pub fn set_pending_action(&mut self, action: PendingAction) {
         self.pending_action = Some(action);
-    }
-    // confirm_pending_action
-    pub fn confirm_pending_action(&mut self) {
-        if let Some(action) = self.pending_action.take() {
-            self.dispatch_command(action.host_index, action.command);
-        }
     }
     // clear_pending_action
     pub fn clear_pending_action(&mut self) {

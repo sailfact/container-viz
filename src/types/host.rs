@@ -1,5 +1,6 @@
 use super::*;
 
+use std::collections::HashMap;
 // Represents a single Docker host entry from config — its name and how to connect to it.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "host", rename_all = "lowercase")]
@@ -108,33 +109,37 @@ impl HostState {
         }
     }
     pub fn apply_container_list(&self, containers: Vec<ContainerInfo>) {
-
+        todo!()
     }
-    pub fn apply_stats_update(&self, id: str, cpu: f64, mem: u64, net_rx: u64, net_tx: u64)
-    pub fn append_log_line(&self, id: str, line: String)
+    pub fn apply_stats_update(&self, id: str, cpu: f64, mem: u64, net_rx: u64, net_tx: u64){
+        todo!()
+    }
+    pub fn append_log_line(&self, id: str, line: String) {
+        todo!()
+    }
     pub fn selected_container(&self) -> Option<ContainerInfo> {
-
+        todo!()
     }
     pub fn next_container(&self) {
-
+        todo!()
     }
     pub fn prev_container(&self) {
-
+        todo!()
     }
     pub fn jump_top(&self) {
-
+        todo!()
     }
     pub fn jump_bottom(&self) {
-
+        todo!()
     }
     pub fn running_count(&self) -> usize {
-
+        todo!()
     }
     pub fn total_count(&self) -> usize {
-
+        todo!()
     }
     pub fn grouped_by_compose(&self) -> Vec<ComposeGroup> {
-
+        todo!()
     }
 }
 
