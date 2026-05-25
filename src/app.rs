@@ -85,30 +85,54 @@ impl AppState {
     /* Mode Shifts */
     // set_mode
     pub fn set_mode(&mut self, mode: AppMode) {
-        todo!()
+        if self.mode == AppMode::Command {
+            self.command_query.clear();
+        }
+        self.mode = mode;
     }
     // toggle_safe_mode
     pub fn toggle_safe_mode(&mut self) {
-        todo!()
+        self.safe_mode = !self.safe_mode;
+        let msg = if self.safe_mode {
+            "Safe mode ON"
+        } else {
+            "Safe mode OFF"
+        };
+        self.set_status(msg.to_string(), MessageLevel::Info);
     }
     // toggle_detail
     pub fn toggle_detail(&mut self) {
-        todo!()
-    }
+        self.show_details = !self.show_details;
+    } 
     // set_pending_action
     pub fn set_pending_action(&mut self, action: PendingAction) {
-        todo!()
+        self.pending_action = Some(action);
+    }
+    // confirm_pending_action
+    pub fn confirm_pending_action(&mut self) {
+        if let Some(action) = self.pending_action.take() {
+            todo!("dispatch action.command to action.host_index without safe-mode check")
+        }
     }
     // clear_pending_action
     pub fn clear_pending_action(&mut self) {
-        todo!()
+        self.pending_action = None;
     }
     // set_status
     pub fn set_status(&mut self, text: String, level: MessageLevel) {
-        todo!()
+        self.status_messages = Some(StatusMessage {
+            text,
+            level,
+            ttl_ticks: 3,
+        });
     }
     // tick_status
     pub fn tick_status(&mut self) {
-        todo!()
+        if let Some(msg) = &mut self.status_messages {
+            msg.decrement();
+            if msg.is_expired() {
+                self.status_messages = None;
+            }
+        }
     }
 }
