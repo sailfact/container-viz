@@ -1,21 +1,114 @@
+// app.rs
+// Implments AppState
+
+// use std::path::PathBuf;
+// use serde::{Deserialize, Serialize};
+// use ratatui::style::Color;
+use std::collections::VecDeque;
+
 use crate::config::AppConfig;
 use crate::types::app::{AppMode, AppState, MessageLevel, PendingAction, StatusMessage};
 use crate::types::messages::{HostCommand, HostUpdate};
+use crate::types::HostState;
 
 
 impl AppState {
-    pub fn new(config: AppConfig) -> Self {}
-    pub fn active_host(&self) -> &HostState {}
-    pub fn active_host_mut(&self) -> &mut HostState {}
-    pub fn next_tab(&mut self) {}
-    pub fn prev_tab(&mut self) {}
-    pub fn apply_update(host_idx: usize, update: HostUpdate) {}
-    pub fn dispatch_command(host_idx: usize, cmd: HostCommand) {}
-    pub fn set_mode(mode: AppMode) {}
-    pub fn toggle_safe_mode() {}
-    pub fn toggle_detail() {}
-    pub fn set_pending_action(action: PendingAction) {}
-    pub fn clear_pending_action() {}
-    pub fn set_status(msg: String, level: MessageLevel) {}
-    pub fn tick_status() {}
+    pub fn new(config: AppConfig) -> Self {
+        let hosts = config.hosts
+            .iter()
+            .map(|host_config| HostState::new(host_config.clone()))
+            .collect();
+        Self { 
+            hosts,
+            active_tab: 0, 
+            mode: AppMode::Normal, 
+            safe_mode: config.safe_mode, 
+            log_buffer: VecDeque::new(), 
+            log_follow: true, 
+            log_filter: None, 
+            show_details: false, 
+            pending_action: None, 
+            command_query: String::new(), 
+            status_messages: None, 
+        }
+    }
+    /* Tab navigation */
+    // active_host()
+    // Returns a shared reference to the currently active `HostState`.
+    pub fn active_host(&self) -> &HostState {
+        todo!()
+    }
+    
+    // active_host_mut()
+    // Returns a mutable reference to the currently active `HostState`.
+    pub fn active_host_mut(&self) -> &mut HostState {
+        todo!()
+    }
+    
+    // next_tab()
+    // Move to next host tab wrapping around
+    pub fn next_tab(&mut self) {
+        if self.hosts.is_empty() {
+            return;
+        } else if self.active_tab == self.hosts.len() - 1 {
+            self.active_tab = 0;
+        } else {
+            self.active_tab += 1;
+        }
+    }
+    // prev_tab()
+    // Move to previous host tab wrapping around 
+    pub fn prev_tab(&mut self) {
+        if self.hosts.is_empty() {
+            return;
+        } else if self.active_tab == 0 {
+            self.active_tab = self.hosts.len() - 1;
+        } else {
+            self.active_tab -= 1;
+        }
+    }
+    
+    /* Inbound Updates */
+    // apply_update()
+    // Apply a 'HostUpdate' from a 'HostTask' to the matching host
+    pub fn apply_update(&mut self, host_idx: usize, update: HostUpdate) {
+        todo!()
+    }
+    
+    /* Outbound Commands */
+    // dispatch_command()
+    // dispatch a 'HostCommand' to the given hosts back-channel
+    pub fn dispatch_command(&mut self, host_idx: usize, cmd: HostCommand) {
+        todo!()
+    }
+    
+    /* Mode Shifts */
+    // set_mode
+    pub fn set_mode(&mut self, mode: AppMode) {
+        todo!()
+    }
+    // toggle_safe_mode
+    pub fn toggle_safe_mode(&mut self) {
+        todo!()
+    }
+    // toggle_detail
+    pub fn toggle_detail(&mut self) {
+        todo!()
+    }
+    // set_pending_action
+    pub fn set_pending_action(&mut self, action: PendingAction) {
+        todo!()
+    }
+    // clear_pending_action
+    pub fn clear_pending_action(&mut self) {
+        todo!()
+    }
+    // set_status
+    pub fn set_status(&mut self, text: String, level: MessageLevel) {
+        todo!()
+    }
+    // tick_status
+    pub fn tick_status(&mut self) {
+        todo!()
+    }
 }
