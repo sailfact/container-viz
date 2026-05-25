@@ -1,3 +1,5 @@
+use tokio::sync::mpsc;
+
 use super::*;
 
 #[derive(Debug, PartialEq, Clone)]
@@ -24,6 +26,7 @@ pub struct PendingAction {
 }
 pub struct AppState {
     pub hosts:              Vec<HostState>,
+
     pub active_tab:         usize,
     pub mode:               AppMode,
     pub safe_mode:          bool,

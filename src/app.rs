@@ -111,7 +111,7 @@ impl AppState {
     // confirm_pending_action
     pub fn confirm_pending_action(&mut self) {
         if let Some(action) = self.pending_action.take() {
-            todo!("dispatch action.command to action.host_index without safe-mode check")
+            self.dispatch_command(action.host_index, action.command);
         }
     }
     // clear_pending_action
