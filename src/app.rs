@@ -5,6 +5,7 @@
 // use serde::{Deserialize, Serialize};
 // use ratatui::style::Color;
 use std::collections::VecDeque;
+use tokio::sync::mpsc;
 
 use crate::config::AppConfig;
 use crate::types::app::{AppMode, AppState, MessageLevel, PendingAction, StatusMessage};
@@ -13,13 +14,14 @@ use crate::types::HostState;
 
 
 impl AppState {
-    pub fn new(config: AppConfig) -> Self {
+    pub fn new(config: AppConfig, command_tx: Vec<mpsc::Sender<HostCommand>>) -> Self {
         let hosts = config.hosts
             .iter()
             .map(|host_config| HostState::new(host_config.clone()))
             .collect();
         Self { 
             hosts,
+            command_tx,
             active_tab: 0, 
             mode: AppMode::Normal, 
             safe_mode: config.safe_mode, 

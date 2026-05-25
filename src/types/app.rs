@@ -18,6 +18,8 @@ pub enum MessageLevel {
     Error,
 }
 
+
+
 #[derive(Debug, Clone)]
 pub struct PendingAction {
     pub label:      String,
@@ -26,7 +28,7 @@ pub struct PendingAction {
 }
 pub struct AppState {
     pub hosts:              Vec<HostState>,
-
+    pub command_tx:         Vec<mpsc::Sender<HostCommand>>,
     pub active_tab:         usize,
     pub mode:               AppMode,
     pub safe_mode:          bool,
