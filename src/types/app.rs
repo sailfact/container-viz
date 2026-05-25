@@ -1,4 +1,4 @@
-use crate::types::{HostCommand, Color};
+use super::*;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum AppMode {
@@ -22,6 +22,19 @@ pub struct PendingAction {
     pub command:    HostCommand,
     pub host_index: usize,
 }
+pub struct AppState {
+    pub hosts:              Vec<HostState>,
+    pub active_tab:         usize,
+    pub mode:               AppMode,
+    pub safe_mode:          bool,
+    pub log_buffer:         VecDeque<String>,
+    pub log_follow:         bool,
+    pub log_filter:         Option<String>,
+    pub show_details:       bool,
+    pub pending_action:     Option<PendingAction>,
+    pub command_query:      String,
+    pub status_messages:    Option<StatusMessage>,
+}
 
 #[derive(Debug, Clone)]
 pub struct StatusMessage {
@@ -39,7 +52,6 @@ impl MessageLevel {
         }  
     }
 }
-
 
 impl StatusMessage {
     pub fn new(text: String, level: MessageLevel) -> Self {

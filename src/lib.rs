@@ -5,3 +5,6 @@ pub mod docker;
 pub mod event;
 pub mod types;
 pub mod ui;
+
+// types
+pub use types::*;

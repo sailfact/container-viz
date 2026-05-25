@@ -3,7 +3,7 @@ use std::fs;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
-use crate::types::ConnectionType;
+use crate::HostConfig;
 // use crate::types::TlsConfig;
 
 // AppConfig
@@ -13,31 +13,22 @@ use crate::types::ConnectionType;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "config", rename_all = "lowercase")]
 pub struct AppConfig {
-    #[serde(default)]
-    pub safe_mode:      bool,
-    pub tick_rate:      u64,
+    #[serde(default = "default_safe_mode")]
+    pub safe_mode: bool,
+
+    #[serde(default = "default_tick_rate")]
+    pub tick_rate: u64,
+    
+    #[serde(default = "default_log_tail_lines")]
     pub log_tail_lines: u64,
-    pub hosts:          Vec<HostConfig>,
+    
+    #[serde(default)]
+    pub hosts: Vec<HostConfig>,
 }
 
-// Represents a single Docker host entry from config — its name and how to connect to it.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "host", rename_all = "lowercase")]
-pub struct HostConfig {
-    #[serde(flatten)]
-    pub name:       String,
-    pub connection: ConnectionType,
-}
+
 
 impl AppConfig {
-    pub fn new(safe_mode: bool, tick_rate: u64, log_tail_lines: u64, hosts: Vec<HostConfig>,) -> Self {
-        Self {
-            safe_mode,
-            tick_rate,
-            log_tail_lines,
-            hosts,
-        }
-    }
     // load()
     // Reads and parses the TOML config file from disk, 
     // returning an error if the file is missing or malformed
@@ -84,16 +75,26 @@ impl AppConfig {
     }
 }
 
-impl HostConfig {
-    pub fn new(&self, name: String, connection: ConnectionType) -> Self {
-        Self { name, connection, }
-    }
-    //Returns a human-readable label for the tab bar (could be name or derived from connection details)
-    pub fn display_name(&self) -> String {
-        format!("{} ({})", self.name, self.connection.bollard_addr())
-    }
-    // Returns true if the connection is a local Unix socket, used to skip TLS logic
-    pub fn is_local(&self) -> bool {
-        self.connection.is_local()
+impl Default for AppConfig {
+    fn default() -> Self {
+        Self {
+            safe_mode: default_safe_mode(),
+            tick_rate: default_tick_rate(),
+            log_tail_lines: default_log_tail_lines(),
+            hosts: Vec::new(),
+        }
     }
 }
+
+fn default_safe_mode() -> bool {
+    true
+}
+ 
+fn default_tick_rate() -> u64 {
+    1000
+}
+ 
+fn default_log_tail_lines() -> u64 {
+    100
+}
+

@@ -1,4 +1,4 @@
-use crate::types::{ContainerInfo, HostStatus};
+use super::*;
 
 #[derive(Debug, Clone)]
 pub enum HostUpdate {
@@ -37,6 +37,13 @@ pub enum HostCommand {
     Shutdown,
 }
 
+pub struct PaletteAction {
+    pub label:          String,
+    pub description:    String,
+    pub command:        HostCommand,
+    pub available:      bool,
+}
+
 impl HostCommand {
     pub fn is_destructive(&self) -> bool {
         matches!(
@@ -49,14 +56,14 @@ impl HostCommand {
 
     pub fn label(&self) -> &str {
         match self {
-            Self::StartContainer(_)  => "Start container",
-            Self::StopContainer(_)   => "Stop container",
-            Self::RestartContainer(_)=> "Restart container",
-            Self::RemoveContainer(_) => "Remove container",
-            Self::ExecShell(_)       => "Exec shell",
-            Self::PullImage(_)       => "Pull image",
-            Self::TailLogs { .. }    => "Tail logs",
-            Self::Shutdown           => "Shutdown",
+            Self::StartContainer(_)     => "Start container",
+            Self::StopContainer(_)      => "Stop container",
+            Self::RestartContainer(_)   => "Restart container",
+            Self::RemoveContainer(_)    => "Remove container",
+            Self::ExecShell(_)          => "Exec shell",
+            Self::PullImage(_)          => "Pull image",
+            Self::TailLogs { .. }       => "Tail logs",
+            Self::Shutdown              => "Shutdown",
         }
     }
 }

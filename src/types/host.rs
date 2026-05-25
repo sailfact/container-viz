@@ -1,5 +1,13 @@
-use super::{PathBuf, Color, Serialize, Deserialize};
+use super::*;
 
+// Represents a single Docker host entry from config — its name and how to connect to it.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "host", rename_all = "lowercase")]
+pub struct HostConfig {
+    #[serde(flatten)]
+    pub name:       String,
+    pub connection: ConnectionType,
+}
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "connection", rename_all = "lowercase")]
 pub enum ConnectionType {
@@ -24,6 +32,14 @@ pub struct TlsConfig {
     pub cert_path:  PathBuf,
     pub ca_cert:    Option<PathBuf>,
     pub verify:     bool,
+}
+
+pub struct HostState {
+    pub config: HostConfig,
+    pub status: HostStatus,
+    pub containers: Vec<ContainerInfo>,
+    pub selected: usize,
+    pub composed_groups: HashMap<String, Vec<ContainerInfo>>,
 }
 
 impl ConnectionType {
@@ -78,5 +94,60 @@ impl Default for TlsConfig {
             ca_cert: None,
             verify: true,  // safe default
         }
+    }
+}
+
+impl HostState {
+    pub fn new(config: HostConfig) -> Self {
+        Self {
+            config,
+            status: HostStatus::Connecting,
+            containers: Vec<ContainerInfo>::new(),
+            selected: 0,
+            composed_groups: HashMap<String, Vec<ContainerInfo>>::new(),
+        }
+    }
+    pub fn apply_container_list(&self, containers: Vec<ContainerInfo>) {
+
+    }
+    pub fn apply_stats_update(&self, id: str, cpu: f64, mem: u64, net_rx: u64, net_tx: u64)
+    pub fn append_log_line(&self, id: str, line: String)
+    pub fn selected_container(&self) -> Option<ContainerInfo> {
+
+    }
+    pub fn next_container(&self) {
+
+    }
+    pub fn prev_container(&self) {
+
+    }
+    pub fn jump_top(&self) {
+
+    }
+    pub fn jump_bottom(&self) {
+
+    }
+    pub fn running_count(&self) -> usize {
+
+    }
+    pub fn total_count(&self) -> usize {
+
+    }
+    pub fn grouped_by_compose(&self) -> Vec<ComposeGroup> {
+
+    }
+}
+
+impl HostConfig {
+    pub fn new(&self, name: String, connection: ConnectionType) -> Self {
+        Self { name, connection, }
+    }
+    //Returns a human-readable label for the tab bar (could be name or derived from connection details)
+    pub fn display_name(&self) -> String {
+        format!("{} ({})", self.name, self.connection.bollard_addr())
+    }
+    // Returns true if the connection is a local Unix socket, used to skip TLS logic
+    pub fn is_local(&self) -> bool {
+        self.connection.is_local()
     }
 }

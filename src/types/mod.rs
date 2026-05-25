@@ -1,13 +1,14 @@
 pub mod container;
 pub mod host;
-pub mod messaging;
-pub mod ui;
+pub mod messages;
+pub mod app;
 
 pub use container::{ContainerInfo, ContainerState, PortBinding};
-pub use host::{ConnectionType, HostStatus, TlsConfig};
-pub use messaging::{AppEvent, HostCommand, HostUpdate};
-pub use ui::{AppMode, MessageLevel, PendingAction, StatusMessage};
+pub use host::{HostConfig, ConnectionType, TlsConfig, HostState, HostStatus};
+pub use messages::{AppEvent, HostCommand, HostUpdate, PaletteAction};
+pub use app::{AppMode, MessageLevel, PendingAction, StatusMessage};
 
 use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 use ratatui::style::Color;
+use std::collections::{VecDeque, HashMap};
