@@ -1,15 +1,13 @@
+// config.rs
+// Implements AppConfig and HostConfig
+// AppConfig is the top-level configuration object, loaded from ~/.config/container-viz/config.tom
 use std::path::PathBuf;
 use std::fs;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
 use crate::HostConfig;
-// use crate::types::TlsConfig;
 
-// AppConfig
-// The top-level configuration object, 
-// loaded from ~/.config/container-viz/config.toml. 
-// It holds all user preferences and the list of Docker hosts to connect to.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "config", rename_all = "lowercase")]
 pub struct AppConfig {
@@ -26,10 +24,7 @@ pub struct AppConfig {
     pub hosts: Vec<HostConfig>,
 }
 
-
-
 impl AppConfig {
-    // load()
     // Reads and parses the TOML config file from disk, 
     // returning an error if the file is missing or malformed
     pub fn load(&self) -> Result<AppConfig> {
@@ -38,7 +33,7 @@ impl AppConfig {
         let config: AppConfig = toml::from_str(&contents)?;
         Ok(config)
     }
-    // save()
+    
     // Writes the current config back to disk, 
     // used after adding/removing hosts
     pub fn save(&self) -> Result<()> {
@@ -51,13 +46,11 @@ impl AppConfig {
         Ok(())
     }
     
-    // add_host()
     // Appends a new HostConfig to the hosts list
     pub fn add_host(&mut self, host: HostConfig) {
         self.hosts.push(host);
     }
     
-    // removes_host()
     // Finds and removes a host by name, 
     // returns bool indicating whether it was found
     pub fn remove_host(&mut self, name: &str) -> bool {
@@ -67,7 +60,6 @@ impl AppConfig {
         })
     }
     
-    // path()
     // Returns the resolved filesystem path to the config file
     pub fn path(&self) -> PathBuf {
         let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
@@ -97,4 +89,3 @@ fn default_tick_rate() -> u64 {
 fn default_log_tail_lines() -> u64 {
     100
 }
-

@@ -1,14 +1,9 @@
 use super::*;
 
 use std::collections::HashMap;
-// Represents a single Docker host entry from config — its name and how to connect to it.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "host", rename_all = "lowercase")]
-pub struct HostConfig {
-    #[serde(flatten)]
-    pub name:       String,
-    pub connection: ConnectionType,
-}
+
+const LOG_BUFFER_CAPACITY: usize = 1000;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "connection", rename_all = "lowercase")]
 pub enum ConnectionType {
@@ -28,6 +23,16 @@ pub enum HostStatus {
     Unreachable(String),
 }
 
+// Represents a single Docker host entry from config — its name and how to connect to it.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "host", rename_all = "lowercase")]
+pub struct HostConfig {
+    #[serde(flatten)]
+    pub name:       String,
+    pub connection: ConnectionType,
+}
+
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TlsConfig {
     pub cert_path:  PathBuf,
@@ -41,6 +46,11 @@ pub struct HostState {
     pub containers: Vec<ContainerInfo>,
     pub selected: usize,
     pub composed_groups: HashMap<String, Vec<ContainerInfo>>,
+}
+
+pub struct ComposeGroup {
+    pub name: String,
+    pub containers: Vec<ContainerInfo>,
 }
 
 impl ConnectionType {
@@ -103,43 +113,132 @@ impl HostState {
         Self {
             config,
             status: HostStatus::Connecting,
-            containers: Vec<ContainerInfo>::new(),
+            containers: Vec::new(),
             selected: 0,
-            composed_groups: HashMap<String, Vec<ContainerInfo>>::new(),
+            composed_groups: HashMap::new(),
         }
     }
-    pub fn apply_container_list(&self, containers: Vec<ContainerInfo>) {
-        todo!()
+
+    // Replaces the entire container list with a fresh snapshot from Docker.
+    // Called when HostTask polls and gets back a new ContainerList update.
+    pub fn apply_container_list(&mut self, containers: Vec<ContainerInfo>) {
+        self.containers = containers;
+        self.selected = 0; // reset selection to top on new list
     }
-    pub fn apply_stats_update(&self, id: str, cpu: f64, mem: u64, net_rx: u64, net_tx: u64){
-        todo!()
+
+    // Finds the container matching `id` and updates its live stats —
+    // CPU%, memory usage, and network rx/tx byte counts.
+    pub fn apply_stats_update(&mut self, id: &str, cpu: f64, mem: u64, net_rx: u64, net_tx: u64){
+        self.containers.iter_mut()
+            .find(|container| container.id == id)
+            .map(|container| {
+                container.cpu_percent = cpu;
+                container.mem_usage = mem;
+                container.net_rx = net_rx;
+                container.net_tx = net_tx;
+            });
     }
-    pub fn append_log_line(&self, id: str, line: String) {
-        todo!()
+
+    // Finds the container matching `id` and appends a new log line to its
+    // log_lines ring buffer, dropping the oldest line if at capacity.
+    pub fn append_log_line(&mut self, id: &str, line: String) {
+        let Some(container) = self.containers.iter_mut().find(|c| c.id == id) else {
+            return;
+        };
+
+        container.log_lines.push_back(line);
+
+        if container.log_lines.len() > LOG_BUFFER_CAPACITY {
+            container.log_lines.pop_front();
+        }
     }
+    
+    // Returns a reference to the currently selected container, or None
+    // if the container list is empty.
     pub fn selected_container(&self) -> Option<ContainerInfo> {
-        todo!()
+        if self.containers.is_empty() {
+            None
+        } else {
+            Some(self.containers[self.selected].clone())
+        }
     }
-    pub fn next_container(&self) {
-        todo!()
+
+    // Moves the selection down one row, stopping at the last container.
+    pub fn next_container(&mut self) {
+        if self.containers.is_empty() {
+            return;
+        }
+        if self.selected < self.containers.len() - 1 {
+            self.selected += 1;
+        }
     }
-    pub fn prev_container(&self) {
-        todo!()
+
+    // Moves the selection up one row, stopping at the first container.
+    pub fn prev_container(&mut self) {
+        if self.containers.is_empty() {
+            return;
+        }
+        if self.selected > 0 {
+            self.selected -= 1;
+        }
     }
-    pub fn jump_top(&self) {
-        todo!()
+
+    // Jumps selection to the first container in the list.
+
+    pub fn jump_top(&mut self) {
+        self.selected = 0;
     }
-    pub fn jump_bottom(&self) {
-        todo!()
+
+    // Jumps selection to the last container in the list.
+    pub fn jump_bottom(&mut self) {
+        if self.containers.is_empty() {
+            return;
+        } 
+        self.selected = self.containers.len() - 1
     }
+
+    // Returns the count of containers currently in Running state.
     pub fn running_count(&self) -> usize {
-        todo!()
+        self.containers
+            .iter()
+            .filter(|c| c.is_running())
+            .count()
     }
+
+    // Returns the total number of containers regardless of state.
     pub fn total_count(&self) -> usize {
-        todo!()
+        self.containers.len()
     }
+
+    // Groups containers by their Compose project label and returns them
+    // as a sorted list of ComposeGroup. Containers with no project are
+    // grouped separately.
     pub fn grouped_by_compose(&self) -> Vec<ComposeGroup> {
-        todo!()
+        let mut map: HashMap<String, Vec<ContainerInfo>> = HashMap::new();
+
+        for container in &self.containers {
+            let key = container
+                .compose_project
+                .clone()
+                .unwrap_or_else(|| "ungrouped".to_string());
+
+            map.entry(key)
+                .or_insert_with(Vec::new)
+                .push(container.clone());
+        }
+
+        let mut groups: Vec<ComposeGroup> = map
+            .into_iter()
+            .map(|(name, containers)| ComposeGroup { name, containers })
+            .collect();
+
+        groups.sort_by(|a, b| match (a.name.as_str(), b.name.as_str()) {
+            ("ungrouped", _) => std::cmp::Ordering::Greater,
+            (_, "ungrouped") => std::cmp::Ordering::Less,
+            _ => a.name.cmp(&b.name),
+        });
+
+        groups
     }
 }
 

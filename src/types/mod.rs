@@ -11,4 +11,3 @@ pub use app::{AppMode, MessageLevel, PendingAction, StatusMessage};
 use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 use ratatui::style::Color;
-use std::collections::{VecDeque, HashMap};

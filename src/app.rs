@@ -1,9 +1,6 @@
 // app.rs
 // Implments AppState
 
-// use std::path::PathBuf;
-// use serde::{Deserialize, Serialize};
-// use ratatui::style::Color;
 use std::collections::VecDeque;
 use tokio::sync::mpsc;
 
