@@ -296,23 +296,41 @@ struct PendingAction {
 container-viz/
 ├── Cargo.toml
 ├── config.example.toml
-├── src/
-│   ├── main.rs              # Entry point, tokio runtime, event loop
-│   ├── app.rs               # AppState, AppMode, update logic
-│   ├── config.rs            # Config loading and validation
-│   ├── docker.rs            # HostTask, bollard wrapper, update/command channels
-│   ├── event.rs             # Keyboard input, tick timer
-│   ├── types.rs             # Shared structs and enums
-│   └── ui/
-│       ├── mod.rs           # Top-level render function, layout split
-│       ├── tabs.rs          # Host tab bar
-│       ├── container_list.rs
-│       ├── detail_panel.rs
-│       ├── log_viewer.rs
-│       ├── statusline.rs
-│       └── overlays/
-│           ├── confirm.rs
-│           ├── host_manager.rs
-│           ├── help.rs
-│           └── command_palette.rs
+└── src/
+    ├── main.rs              # Entry point, tokio runtime, event loop
+    ├── lib.rs               # Crate root; declares all modules and re-exports public API
+    ├── app.rs               # AppState, AppMode, update logic
+    ├── config.rs            # Config loading and validation
+    ├── docker.rs            # HostTask, bollard wrapper, update/command channels
+    ├── event.rs             # Keyboard input, tick timer
+    ├── types/
+    │   ├── mod.rs           # Re-exports all sub-modules; single import point for the rest of the crate
+    │   ├── app.rs           # AppState, AppMode, PendingAction, StatusMessage, MessageLevel
+    │   ├── container.rs     # ContainerInfo, ContainerState, PortBinding
+    │   ├── host.rs          # HostConfig, ConnectionType, TlsConfig, HostState, HostStatus
+    │   └── messages.rs      # HostUpdate, HostCommand, AppEvent, PaletteAction
+    └── ui/
+        ├── mod.rs           # Top-level render function, layout split
+        ├── tabs.rs          # Host tab bar
+        ├── container_list.rs
+        ├── detail_panel.rs
+        ├── log_viewer.rs
+        ├── statusline.rs
+        └── overlays/
+            ├── confirm.rs
+            ├── host_manager.rs
+            ├── help.rs
+            └── command_palette.rs
 ```
+
+### `types/` module breakdown
+
+The original flat `types.rs` is split by domain to keep each file focused and to reduce merge conflicts when types evolve independently.
+
+| File | Contents |
+|---|---|
+| `types/mod.rs` | `pub use` re-exports from all sub-modules; only file external modules import from |
+| `types/app.rs` | `AppState`, `AppMode`, `PendingAction`, `StatusMessage`, `MessageLevel` |
+| `types/container.rs` | `ContainerInfo`, `ContainerState`, `PortBinding` |
+| `types/host.rs` | `HostConfig`, `ConnectionType`, `TlsConfig`, `HostState`, `HostStatus` |
+| `types/messages.rs` | `HostUpdate`, `HostCommand`, `AppEvent`, `PaletteAction` |

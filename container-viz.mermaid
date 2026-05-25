@@ -7,9 +7,9 @@ classDiagram
         +log_tail_lines: u64
         +hosts: Vec~HostConfig~
         +load() Result~AppConfig~
-        +save() Result~()~
+        +save() Result
         +add_host(host: HostConfig)
-        +remove_host(name: &str) bool
+        +remove_host(name: str) bool
         +path() PathBuf
     }
 
@@ -22,8 +22,8 @@ classDiagram
 
     class ConnectionType {
         <<enumeration>>
-        UnixSocket(PathBuf)
-        Tcp~host String, port u16, tls Option~TlsConfig~~
+        UnixSocket
+        Tcp
     }
 
     class TlsConfig {
@@ -47,8 +47,8 @@ classDiagram
         +command_query: String
         +status_message: Option~StatusMessage~
         +new(config: AppConfig) AppState
-        +active_host() &HostState
-        +active_host_mut() &mut HostState
+        +active_host() HostState
+        +active_host_mut() HostState
         +next_tab()
         +prev_tab()
         +apply_update(host_idx: usize, update: HostUpdate)
@@ -100,29 +100,29 @@ classDiagram
         +status: HostStatus
         +containers: Vec~ContainerInfo~
         +selected: usize
-        +compose_groups: HashMap~String, Vec~usize~~
+        +compose_groups: HashMap~String-Vec~
         +new(config: HostConfig) HostState
         +apply_container_list(containers: Vec~ContainerInfo~)
-        +apply_stats_update(id: &str, cpu: f64, mem: u64, net_rx: u64, net_tx: u64)
-        +append_log_line(id: &str, line: String)
-        +selected_container() Option~&ContainerInfo~
+        +apply_stats_update(id: str, cpu: f64, mem: u64, net_rx: u64, net_tx: u64)
+        +append_log_line(id: str, line: String)
+        +selected_container() Option~ContainerInfo~
         +next_container()
         +prev_container()
         +jump_top()
         +jump_bottom()
         +running_count() usize
         +total_count() usize
-        +grouped_by_compose() Vec~(Option~String~, Vec~&ContainerInfo~)~
+        +grouped_by_compose() Vec~ComposeGroup~
     }
 
     class HostStatus {
         <<enumeration>>
         Connecting
         Connected
-        Unreachable(String)
-        +label() &str
+        Unreachable
+        +label() str
         +colour() Color
-        +icon() &str
+        +icon() str
     }
 
     %% ── Container ───────────────────────────────────────────────────────────
@@ -147,12 +147,12 @@ classDiagram
         +from_bollard(summary: ContainerSummary) ContainerInfo
         +push_cpu_sample(cpu: f64)
         +push_mem_sample(mem: u64)
-        +cpu_sparkline() &[f64]
-        +mem_sparkline() &[u64]
+        +cpu_sparkline() Vec~f64~
+        +mem_sparkline() Vec~u64~
         +formatted_uptime() String
         +mem_percent() f64
         +is_running() bool
-        +short_id() &str
+        +short_id() str
     }
 
     class ContainerState {
@@ -164,8 +164,8 @@ classDiagram
         Dead
         Unknown
         +colour() Color
-        +icon() &str
-        +label() &str
+        +icon() str
+        +label() str
     }
 
     class PortBinding {
@@ -180,32 +180,32 @@ classDiagram
 
     class HostUpdate {
         <<enumeration>>
-        ContainerList(Vec~ContainerInfo~)
-        StatsUpdate~id String, cpu f64, mem u64, net_rx u64, net_tx u64~
-        LogLine~id String, line String~
-        StatusChange(HostStatus)
+        ContainerList
+        StatsUpdate
+        LogLine
+        StatusChange
     }
 
     class HostCommand {
         <<enumeration>>
-        StartContainer(String)
-        StopContainer(String)
-        RestartContainer(String)
-        RemoveContainer(String)
-        ExecShell(String)
-        PullImage(String)
-        TailLogs~id String, lines u64~
+        StartContainer
+        StopContainer
+        RestartContainer
+        RemoveContainer
+        ExecShell
+        PullImage
+        TailLogs
         Shutdown
         +is_destructive() bool
-        +label() &str
+        +label() str
     }
 
     class AppEvent {
         <<enumeration>>
         Tick
-        Key(KeyCode)
-        HostUpdate~idx usize, update HostUpdate~
-        Resize~width u16, height u16~
+        Key
+        HostUpdate
+        Resize
     }
 
     %% ── Host Task ───────────────────────────────────────────────────────────
@@ -215,78 +215,132 @@ classDiagram
         -tx: Sender~HostUpdate~
         -rx: Receiver~HostCommand~
         -retry_interval_s: u64
-        +new(config: HostConfig, tx: Sender~HostUpdate~, rx: Receiver~HostCommand~) HostTask
-        +run() Result~()~
+        +new(config: HostConfig, tx: Sender, rx: Receiver) HostTask
+        +run() Result
         -connect() Result~Docker~
-        -poll_containers(docker: &Docker) Result~()~
-        -stream_stats(docker: &Docker, id: String) Result~()~
-        -tail_logs(docker: &Docker, id: String, lines: u64) Result~()~
-        -handle_command(docker: &Docker, cmd: HostCommand) Result~()~
+        -poll_containers(docker: Docker) Result
+        -stream_stats(docker: Docker, id: String) Result
+        -tail_logs(docker: Docker, id: String, lines: u64) Result
+        -handle_command(docker: Docker, cmd: HostCommand) Result
         -retry_loop()
         -build_container_info(summary: ContainerSummary) ContainerInfo
-        -calc_cpu_percent(prev: &StatsState, curr: &StatsState) f64
+        -calc_cpu_percent(prev: StatsState, curr: StatsState) f64
+    }
+
+    %% ── Module structure ────────────────────────────────────────────────────
+
+    class lib_rs {
+        <<module: lib.rs>>
+        declares mod app
+        declares mod config
+        declares mod docker
+        declares mod event
+        declares mod types
+        declares mod ui
+        pub use types-*-*
+    }
+
+    class types_mod {
+        <<module: types/mod.rs>>
+        pub use app-*-*
+        pub use container-*-*
+        pub use host-*-*
+        pub use messages-*-*
+    }
+
+    class types_app {
+        <<module: types/app.rs>>
+        AppState
+        AppMode
+        PendingAction
+        StatusMessage
+        MessageLevel
+    }
+
+    class types_container {
+        <<module: types/container.rs>>
+        ContainerInfo
+        ContainerState
+        PortBinding
+    }
+
+    class types_host {
+        <<module: types/host.rs>>
+        HostConfig
+        ConnectionType
+        TlsConfig
+        HostState
+        HostStatus
+    }
+
+    class types_messages {
+        <<module: types/messages.rs>>
+        HostUpdate
+        HostCommand
+        AppEvent
+        PaletteAction
     }
 
     %% ── UI Layer ────────────────────────────────────────────────────────────
 
     class Renderer {
-        +render(f: &mut Frame, state: &AppState)
+        +render(f: Frame, state: AppState)
         -build_layout(area: Rect) Layout
-        -render_overlays(f: &mut Frame, state: &AppState)
+        -render_overlays(f: Frame, state: AppState)
     }
 
     class TabBar {
-        +render(f: &mut Frame, area: Rect, state: &AppState)
-        -tab_style(status: &HostStatus, active: bool) Style
+        +render(f: Frame, area: Rect, state: AppState)
+        -tab_style(status: HostStatus, active: bool) Style
     }
 
     class ContainerList {
-        +render(f: &mut Frame, area: Rect, host: &HostState)
-        -build_row(c: &ContainerInfo) Row
-        -state_colour(state: &ContainerState) Color
+        +render(f: Frame, area: Rect, host: HostState)
+        -build_row(c: ContainerInfo) Row
+        -state_colour(state: ContainerState) Color
         -column_widths() Vec~Constraint~
     }
 
     class DetailPanel {
-        +render(f: &mut Frame, area: Rect, container: &ContainerInfo)
-        -render_metadata(f: &mut Frame, area: Rect, container: &ContainerInfo)
-        -render_sparklines(f: &mut Frame, area: Rect, container: &ContainerInfo)
-        -format_ports(ports: &[PortBinding]) String
+        +render(f: Frame, area: Rect, container: ContainerInfo)
+        -render_metadata(f: Frame, area: Rect, container: ContainerInfo)
+        -render_sparklines(f: Frame, area: Rect, container: ContainerInfo)
+        -format_ports(ports: Vec~PortBinding~) String
     }
 
     class LogViewer {
-        +render(f: &mut Frame, area: Rect, state: &AppState)
-        -apply_filter(lines: &VecDeque~String~, filter: &str) Vec~&String~
-        -highlight_filter(line: &str, filter: &str) Line
+        +render(f: Frame, area: Rect, state: AppState)
+        -apply_filter(lines: VecDeque~String~, filter: str) Vec~String~
+        -highlight_filter(line: str, filter: str) Line
     }
 
     class Statusline {
-        +render(f: &mut Frame, area: Rect, state: &AppState)
-        -mode_label(mode: &AppMode) &str
-        -mode_colour(mode: &AppMode) Color
+        +render(f: Frame, area: Rect, state: AppState)
+        -mode_label(mode: AppMode) str
+        -mode_colour(mode: AppMode) Color
         -safe_mode_indicator(safe_mode: bool) Span
     }
 
     class ConfirmOverlay {
-        +render(f: &mut Frame, area: Rect, action: &PendingAction)
+        +render(f: Frame, area: Rect, action: PendingAction)
         -centred_rect(percent_x: u16, percent_y: u16, area: Rect) Rect
     }
 
     class HostManagerOverlay {
-        +render(f: &mut Frame, area: Rect, config: &AppConfig)
-        -render_host_list(f: &mut Frame, area: Rect, hosts: &[HostConfig])
-        -render_host_form(f: &mut Frame, area: Rect)
+        +render(f: Frame, area: Rect, config: AppConfig)
+        -render_host_list(f: Frame, area: Rect, hosts: Vec~HostConfig~)
+        -render_host_form(f: Frame, area: Rect)
     }
 
     class HelpOverlay {
-        +render(f: &mut Frame, area: Rect, mode: &AppMode)
-        -bindings_for_mode(mode: &AppMode) Vec~(&str, &str)~
+        +render(f: Frame, area: Rect, mode: AppMode)
+        -bindings_for_mode(mode: AppMode) Vec~Binding~
     }
 
     class CommandPalette {
-        +render(f: &mut Frame, area: Rect, query: &str, host: &HostState)
-        -filtered_actions(query: &str, host: &HostState) Vec~PaletteAction~
-        -score(query: &str, label: &str) u32
+        +render(f: Frame, area: Rect, query: str, host: HostState)
+        -filtered_actions(query: str, host: HostState) Vec~PaletteAction~
+        -score(query: str, label: str) u32
     }
 
     class PaletteAction {
@@ -296,7 +350,20 @@ classDiagram
         +available: bool
     }
 
-    %% ── Relationships ───────────────────────────────────────────────────────
+    %% ── Module relationships ─────────────────────────────────────────────────
+
+    lib_rs --> types_mod : declares
+    lib_rs --> types_app : re-exports via types
+    lib_rs --> types_container : re-exports via types
+    lib_rs --> types_host : re-exports via types
+    lib_rs --> types_messages : re-exports via types
+
+    types_mod --> types_app : pub use
+    types_mod --> types_container : pub use
+    types_mod --> types_host : pub use
+    types_mod --> types_messages : pub use
+
+    %% ── Type relationships ───────────────────────────────────────────────────
 
     AppConfig "1" *-- "1..*" HostConfig : contains
     HostConfig "1" *-- "1" ConnectionType : has

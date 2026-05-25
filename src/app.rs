@@ -32,9 +32,9 @@ pub struct HostState {
 }
 
 impl AppState {
-    pub fn new(&self, config: AppConfig) -> Self {}
-    pub fn active_host(&self) &HostState {}
-    pub fn active_host_mut(&self) &mut HostState {}
+    pub fn new(config: AppConfig) -> Self {}
+    pub fn active_host(&self) -> &HostState {}
+    pub fn active_host_mut(&self) -> &mut HostState {}
     pub fn next_tab(&mut self) {}
     pub fn prev_tab(&mut self) {}
     pub fn apply_update(host_idx: usize, update: HostUpdate) {}
