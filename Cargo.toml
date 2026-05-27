@@ -15,6 +15,7 @@ path = "src/lib.rs"
 anyhow = "1.0.102"
 bollard = "0.21.0"
 crossterm = "0.29.0"
+futures-util = "0.3.32"
 human_bytes = "0.4.3"
 ratatui = "0.30.0"
 serde = { version = "1.0.228", features = ["derive"] }  # needs derive

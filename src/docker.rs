@@ -1,20 +1,23 @@
-use std::path;
 // docker.rs
-use std::{path::PathBuf, time::Duration};
+use std::path::PathBuf;
+use std::time::Duration;
 
-use anyhow::{Ok, Result};
+use anyhow::{Ok, Result, Context};
 use bollard::Docker;
 use bollard::models::ContainerSummary;
 use tokio::sync::mpsc::{Sender, Receiver};
+use std::collections::VecDeque;
 
-use crate::docker;
+use bollard::query_parameters::{
+    CreateImageOptionsBuilder, ListContainersOptionsBuilder,
+    LogsOptionsBuilder, RemoveContainerOptionsBuilder, StatsOptionsBuilder,
+    StopContainerOptionsBuilder,
+};
+use futures_util::TryStreamExt;
+
 use crate::types::{
-    ConnectionType,
-    ContainerInfo,
-    HostCommand,
-    HostConfig,
-    HostStatus,
-    HostUpdate,
+    ConnectionType, ContainerInfo, HostCommand,
+    HostConfig, HostStatus, HostUpdate,
 };
 
 #[derive(Default, Clone)]
@@ -65,7 +68,7 @@ impl HostTask {
                     // Connection lost — fall through to retry.
                     let _ = self
                         .tx
-                        .send(HostUpdate::StatusChange(HostStatus::Unreachable))
+                        .send(HostUpdate::StatusChange(Unreachable))
                         .await;
                 }
                 Err(_err) => {
@@ -73,14 +76,14 @@ impl HostTask {
                     // once HostStatus::Unreachable(String) is wired up.
                     let _ = self
                         .tx
-                        .send(HostUpdate::StatusChange(HostStatus::Unreachable))
+                        .send(HostUpdate::StatusChange(Unreachable))
                         .await;
                 }
             }
 
-            tokio::time::sleep(Duration::from_secs(self.retry_interval_s)).await;
+            tokio::time::sleep(Duration::from_secs(self.retry_intervals)).await;
+        }
     }
-
     async fn connect(&self) -> Result<Docker> {
         match &self.config.connection {
             ConnectionType::UnixSocket(path) => {
@@ -105,5 +108,12 @@ impl HostTask {
                 todo!("connect via TCP+TLS using tls_config.cert_path")
             }
         }
+    }
+    fn calc_cpu_percent(prev: &StatsSnapshot, curr: &StatsSnapshot) -> f54 {
+
+    }
+    
+    async fn send(&self, update: HostUpdate) {
+        let _ = self.tx.send(update).await;
     }
 }

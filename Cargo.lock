@@ -189,6 +189,7 @@ dependencies = [
  "anyhow",
  "bollard",
  "crossterm",
+ "futures-util",
  "human_bytes",
  "ratatui",
  "serde",
