@@ -54,10 +54,9 @@ impl AppConfig {
     // Finds and removes a host by name, 
     // returns bool indicating whether it was found
     pub fn remove_host(&mut self, name: &str) -> bool {
-        self.hosts.iter().position(|h| h.name == name).map_or(false, |idx| {
-            self.hosts.remove(idx);
-            true
-        })
+        let before = self.hosts.len();
+        self.hosts.retain(|h| h.name != name);
+        self.hosts.len() < before
     }
     
     // Returns the resolved filesystem path to the config file
