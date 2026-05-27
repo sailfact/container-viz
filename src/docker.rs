@@ -1,3 +1,4 @@
+use std::path;
 // docker.rs
 use std::{path::PathBuf, time::Duration};
 
@@ -6,6 +7,7 @@ use bollard::Docker;
 use bollard::models::ContainerSummary;
 use tokio::sync::mpsc::{Sender, Receiver};
 
+use crate::docker;
 use crate::types::{
     ConnectionType,
     ContainerInfo,
@@ -49,6 +51,21 @@ impl HostTask {
     }
 
     async fn connect(&self) -> Result<Docker> {
-        todo!("connect not Implemented")
+        match &self.config.connection {
+            ConnectionType::UnixSocket(path) => {
+                let docker = Docker::connect_with_unix(
+                    path.to_str().unwrap_or("/var/run/docker.sock"), 
+                    120, 
+                    bollard::API_DEFAULT_VERSION,
+                )?;
+                Ok(docker)
+            }
+            ConnectionType::Tcp { host, port, tls: None } => {
+
+            } 
+            ConnectionType::Tcp { host, port, tls: Somm(tls_config) }  = {
+                
+            }
+        }
     }
 }

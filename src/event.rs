@@ -28,7 +28,7 @@ impl EventHandler {
         let tx_input = tx;
         tokio::spawn(async move {
             loop {
-                // `crossterm::event::read` is a plain fn pointer — no closure
+                // crossterm::event::read is a plain fn pointer — no closure
                 // needed, which avoids a move-capture issue.
                 let result = tokio::task::spawn_blocking(crossterm::event::read).await;
 
