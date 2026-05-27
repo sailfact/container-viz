@@ -47,7 +47,38 @@ impl HostTask {
     }
 
     async fn retry_loop(&mut self) {
-        todo!()
+        loop {
+            match self.connect().await {
+                Ok(docker) => {
+                    // Notify the main loop we're up.
+                    let _ = self
+                        .tx
+                        .send(HostUpdate::StatusChange(HostStatus::Connected))
+                        .await;
+
+                    // Drive the connected state. Returns true on clean shutdown,
+                    // false if the connection dropped unexpectedly.
+                    if self.run_connected(docker).await {
+                        return; // Shutdown command received
+                    }
+
+                    // Connection lost — fall through to retry.
+                    let _ = self
+                        .tx
+                        .send(HostUpdate::StatusChange(HostStatus::Unreachable))
+                        .await;
+                }
+                Err(_err) => {
+                    // TODO: surface _err string inside the StatusChange variant
+                    // once HostStatus::Unreachable(String) is wired up.
+                    let _ = self
+                        .tx
+                        .send(HostUpdate::StatusChange(HostStatus::Unreachable))
+                        .await;
+                }
+            }
+
+            tokio::time::sleep(Duration::from_secs(self.retry_interval_s)).await;
     }
 
     async fn connect(&self) -> Result<Docker> {
@@ -61,10 +92,17 @@ impl HostTask {
                 Ok(docker)
             }
             ConnectionType::Tcp { host, port, tls: None } => {
-
+                let addr = format!("{host}:{port}");
+                let docker = Docker::connect_with_http(
+                    &addr,
+                120,
+                    bollard::API_DEFAULT_VERSION,
+                )?;
+                Ok(docker)
             } 
-            ConnectionType::Tcp { host, port, tls: Somm(tls_config) }  = {
-                
+            ConnectionType::Tcp { host, port, tls: Some(tls_config) }  => {
+                let addr = format!("{host}:{port}");
+                todo!("connect via TCP+TLS using tls_config.cert_path")
             }
         }
     }
