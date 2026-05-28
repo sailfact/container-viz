@@ -18,8 +18,6 @@ pub enum MessageLevel {
     Error,
 }
 
-
-
 #[derive(Debug, Clone)]
 pub struct PendingAction {
     pub label:      String,
@@ -39,6 +37,7 @@ pub struct AppState {
     pub pending_action:     Option<PendingAction>,
     pub command_query:      String,
     pub status_messages:    Option<StatusMessage>,
+    pub log_scroll:         u16,
 }
 
 #[derive(Debug, Clone)]

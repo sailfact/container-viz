@@ -29,6 +29,7 @@ impl AppState {
             pending_action: None, 
             command_query: String::new(), 
             status_messages: None, 
+            log_scroll: 0,
         }
     }
     /* Tab navigation */
