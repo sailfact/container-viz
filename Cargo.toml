@@ -13,11 +13,11 @@ path = "src/lib.rs"
 
 [dependencies]
 anyhow = "1.0.102"
-bollard = "0.21.0"
+bollard = { version = "0.21.0", features = ["ssl"] }    
 crossterm = "0.29.0"
 futures-util = "0.3.32"
 human_bytes = "0.4.3"
 ratatui = "0.30.0"
 serde = { version = "1.0.228", features = ["derive"] }  # needs derive
 tokio = { version = "1.52.3", features = ["full"] }     # needs async runtime
-toml = "1.1.2"
+toml = "1.1.2+spec-1.1.0"

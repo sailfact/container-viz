@@ -1,7 +1,8 @@
 use super::Color;
 
+use bollard::models::ContainerSummary;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};   // Duration already imported; add the other two
 use std::collections::VecDeque;
-use std::time::Duration;
 
 const SPARKLINE_LEN: usize = 60;
 
@@ -98,6 +99,71 @@ impl ContainerInfo {
                     (_, _, m)           => format!("{}m", m),
                 }
             }
+        }
+    }
+    pub fn from_bollard(summary: ContainerSummary) -> Self {
+        let state = summary
+            .state
+            .map(|s| ContainerState::from(s.to_string().as_str()))
+            .unwrap_or(ContainerState::Unknown);
+
+        // Docker prefixes names with '/'; take the first and strip it.
+        let name = summary
+            .names
+            .and_then(|names| names.into_iter().next())
+            .map(|n| n.trim_start_matches('/').to_string())
+            .unwrap_or_default();
+
+        let compose_project = summary
+            .labels
+            .as_ref()
+            .and_then(|l| l.get("com.docker.compose.project").cloned());
+
+        // Only published ports (those with a host-side public_port).
+        let ports = summary
+            .ports
+            .unwrap_or_default()
+            .into_iter()
+            .filter_map(|p| {
+                let host_port = p.public_port?;
+                Some(PortBinding {
+                    host_ip: p.ip.unwrap_or_default(),
+                    host_port,
+                    container_port: p.private_port,
+                    protocol: p.typ.map(|t| t.to_string()).unwrap_or_else(|| "tcp".into()),
+                })
+            })
+            .collect();
+
+        // Age since creation, surfaced only while running. True since-last-start
+        // uptime would need a per-container inspect call on every poll.
+        let uptime = if state == ContainerState::Running {
+            summary.created.and_then(|created| {
+                let now = SystemTime::now().duration_since(UNIX_EPOCH).ok()?.as_secs() as i64;
+                let secs = now - created;
+                (secs >= 0).then(|| Duration::from_secs(secs as u64))
+            })
+        } else {
+            None
+        };
+
+        Self {
+            id: summary.id.unwrap_or_default(),
+            name,
+            image: summary.image.unwrap_or_default(),
+            state,
+            status: summary.status.unwrap_or_default(),
+            uptime,
+            compose_project,
+            ports,
+            cpu_percent: 0.0,
+            mem_usage: 0,
+            mem_limit: 0,
+            cpu_history: VecDeque::new(),
+            mem_history: VecDeque::new(),
+            net_rx: 0,
+            net_tx: 0,
+            log_lines: VecDeque::new(),
         }
     }
 }
