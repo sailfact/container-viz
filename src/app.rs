@@ -5,9 +5,9 @@ use std::collections::VecDeque;
 use tokio::sync::mpsc;
 
 use crate::config::AppConfig;
-use crate::types::app::{AppMode, AppState, MessageLevel, PendingAction, StatusMessage};
-use crate::types::messages::{HostCommand, HostUpdate};
-use crate::types::HostState;
+use crate::model::app::{AppMode, AppState, MessageLevel, PendingAction, StatusMessage};
+use crate::model::messages::{HostCommand, HostUpdate};
+use crate::model::HostState;
 
 
 impl AppState {

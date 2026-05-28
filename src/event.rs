@@ -4,7 +4,7 @@ use crossterm::event::{Event as CrosstermEvent};
 use tokio::sync::mpsc;
 use tokio::time::interval;
 
-use crate::types::AppEvent;
+use crate::model::AppEvent;
 
 pub struct EventHandler {
     /// Receiver half — handed to the caller so the main loop can drain it.

@@ -1,10 +1,10 @@
 /// lib.rs
 pub mod app;
 pub mod config;
-pub mod docker;
+pub mod host_task;
 pub mod event;
-pub mod types;
+pub mod model;
 pub mod ui;
 
 // types
-pub use types::*;
+pub use model::*;
