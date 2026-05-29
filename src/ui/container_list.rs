@@ -29,7 +29,7 @@ pub fn render(f: &mut Frame, area: Rect, host: &HostState) {
     f.render_stateful_widget(table, area, &mut ts);
 }
 
-fn build_row(c: &ContainerInfo) -> Row {
+fn build_row(c: &ContainerInfo) -> Row<'_> {
     let (cpu, mem) = if c.is_running() {
         (format!("{:.1}%", c.cpu_percent), human_bytes(c.mem_usage as f64))
     } else {
