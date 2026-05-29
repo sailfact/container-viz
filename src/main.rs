@@ -15,7 +15,7 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use tokio::sync::mpsc;
 
 use container_viz::config::AppConfig;
-use container_viz::docker::HostTask;
+use container_viz::host_task::HostTask;
 use container_viz::event::EventHandler;
 use container_viz::model::{AppEvent, AppMode, AppState, HostCommand, HostUpdate};
 use container_viz::ui;
@@ -23,14 +23,15 @@ use container_viz::ui;
 #[tokio::main]
 async fn main() -> Result<()> {
     // ── 1. Config (parse errors are fatal, printed before the TUI starts) ──
-    let config = AppConfig::load()?;
+    let config = AppConfig::default(); 
+    config.load()?;
 
     if config.hosts.is_empty() {
         eprintln!("No hosts configured — add at least one [[hosts]] entry to your config.");
         std::process::exit(1);
     }
 
-    let tick_rate = Duration::from_millis(config.tick_rate_ms);
+    let tick_rate = Duration::from_millis(config.tick_rate);
 
     // ── 2. Per-host channels + spawn a HostTask for each ───────────────────
     // Each host gets its own update channel; the receiver's *position* in
@@ -80,7 +81,7 @@ async fn run(
         // and so every key/tick produces an immediate repaint.
         terminal.draw(|f| ui::render(f, state))?;
 
-        let Some(event) = events.receiver().recv().await else {
+        let Some(event) = events.next().await else {
             break; // channel closed — handler task is gone, time to exit
         };
 
@@ -145,10 +146,10 @@ fn handle_normal_key(state: &mut AppState, key: KeyEvent) -> bool {
         KeyCode::Char('q') => return true,
 
         // Selection
-        KeyCode::Char('j') => state.active_host_mut().next_container(),
-        KeyCode::Char('k') => state.active_host_mut().prev_container(),
-        KeyCode::Char('g') => state.active_host_mut().jump_top(),
-        KeyCode::Char('G') => state.active_host_mut().jump_bottom(),
+        KeyCode::Char('j') => { if let Some(h) = state.active_host_mut() {h.next_container();}}
+        KeyCode::Char('k') => { if let Some(h) = state.active_host_mut() {h.prev_container();}}
+        KeyCode::Char('g') => { if let Some(h) = state.active_host_mut() {h.jump_top();}}
+        KeyCode::Char('G') => { if let Some(h) = state.active_host_mut() {h.jump_bottom();}}
 
         // Tabs
         KeyCode::Tab => state.next_tab(),
