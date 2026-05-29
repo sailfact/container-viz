@@ -1,10 +1,4 @@
-# container-viz — Design Spec
-
-**Date:** 2026-05-22  
-**Status:** Approved  
-**Scope:** Week + Month (live stats, log viewer, basic actions, Compose grouping, image management, multi-host support)
-
----
+# Container Viz 
 
 ## Overview
 
@@ -46,28 +40,28 @@ HostTask (one per host)
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  󰡕 homelab    󰡕 vps-01    󰡕 nas         [+]                    │  ← tab bar
+│  󰡕 homelab    󰡕 vps-01    󰡕 nas         [+]                     │
 ├─────────────────────────────────────────────────────────────────┤
 │ ╭─ Containers ───────────────────────────────────────────────╮  │
 │ │   Name              Image            Status    CPU    Mem  │  │
 │ │ ▶  nginx            nginx:alpine     󰄬 running  0.2%  18MB │  │
 │ │    postgres         postgres:15      󰄬 running  1.1%  142MB│  │
 │ │    redis            redis:7          󰄬 running  0.0%  8MB  │  │
-│ │    old-worker       myapp:v1.2       󱗜 exited   —     —   │  │
+│ │    old-worker       myapp:v1.2       󱗜 exited   —     —    │  │
 │ ╰────────────────────────────────────────────────────────────╯  │
 │ ╭─ nginx ────────────────────────────────────────────────────╮  │
 │ │  Image    nginx:alpine      Ports   0.0.0.0:80->80/tcp     │  │
-│ │  ID       a3f1c8d9e2b0      Net     bridge                  │  │
-│ │  Uptime   2d 4h 12m         Compose web-stack               │  │
-│ │                                                             │  │
-│ │  CPU ▁▂▁▁▂▃▂▁  0.2%        Mem ▁▁▁▁▁▁▁▁  18MB / 512MB    │  │
+│ │  ID       a3f1c8d9e2b0      Net     bridge                 │  │
+│ │  Uptime   2d 4h 12m         Compose web-stack              │  │
+│ │                                                            │  │
+│ │  CPU ▁▂▁▁▂▃▂▁  0.2%        Mem ▁▁▁▁▁▁▁▁  18MB / 512MB      │  │
 │ ╰────────────────────────────────────────────────────────────╯  │
 │ ╭─ Logs: nginx ──────────────────────────────────────────────╮  │
 │ │  2026-05-22 14:32:01 GET /health 200 0.4ms                 │  │
 │ │  2026-05-22 14:32:05 GET /api/v1/users 200 12ms            │  │
 │ ╰────────────────────────────────────────────────────────────╯  │
 ├─────────────────────────────────────────────────────────────────┤
-│  NORMAL   󰡕 homelab  │  4 running  1 exited  │  safe mode OFF  │  ← statusline
+│  NORMAL   󰡕 homelab  │  4 running  1 exited  │  safe mode OFF   │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -164,7 +158,7 @@ port = 2375
 tls = false
 ```
 
-### Core types
+### Core Models
 
 ```rust
 struct HostConfig {
@@ -293,44 +287,43 @@ struct PendingAction {
 ## Project Structure
 
 ```
-container-viz/
-├── Cargo.toml
-├── config.example.toml
-└── src/
-    ├── main.rs              # Entry point, tokio runtime, event loop
-    ├── lib.rs               # Crate root; declares all modules and re-exports public API
-    ├── app.rs               # AppState, AppMode, update logic
-    ├── config.rs            # Config loading and validation
-    ├── docker.rs            # HostTask, bollard wrapper, update/command channels
-    ├── event.rs             # Keyboard input, tick timer
-    ├── types/
-    │   ├── mod.rs           # Re-exports all sub-modules; single import point for the rest of the crate
-    │   ├── app.rs           # AppState, AppMode, PendingAction, StatusMessage, MessageLevel
-    │   ├── container.rs     # ContainerInfo, ContainerState, PortBinding
-    │   ├── host.rs          # HostConfig, ConnectionType, TlsConfig, HostState, HostStatus
-    │   └── messages.rs      # HostUpdate, HostCommand, AppEvent, PaletteAction
-    └── ui/
-        ├── mod.rs           # Top-level render function, layout split
-        ├── tabs.rs          # Host tab bar
-        ├── container_list.rs
-        ├── detail_panel.rs
-        ├── log_viewer.rs
-        ├── statusline.rs
-        └── overlays/
-            ├── confirm.rs
-            ├── host_manager.rs
-            ├── help.rs
-            └── command_palette.rs
+src/
+├── app.rs    # AppState, AppMode, update logic
+├── config.rs # Config loading and validation
+├── event.rs  # Keyboard input, tick timer
+├── host_task # HostTask, bollard wrapper, update/command channels
+│   ├── connection.rs
+│   ├── logs.rs
+│   ├── mod.rs
+│   └── stats.rs
+├── lib.rs  # Crate root; declares all modules and re-exports public API
+├── main.rs # Entry point, tokio runtime, event loop
+├── model
+│   ├── app.rs # AppState, AppMode, PendingAction, StatusMessage, MessageLevel
+│   ├── container.rs # ContainerInfo, ContainerState, PortBinding
+│   ├── host.rs      # HostConfig, ConnectionType, TlsConfig, HostState, HostStatus
+│   ├── messages.rs  # HostUpdate, HostCommand, AppEvent, PaletteAction
+│   └── mod.rs       # Re-exports all sub-modules; single import point for the rest of the crate
+└── ui
+    ├── container_list.rs
+    ├── detail_panel.rs
+    ├── log_viewer.rs
+    ├── mod.rs       # Top-level render function, layout split
+    ├── overlays
+    │   ├── command_palette.rs
+    │   ├── confirm.rs
+    │   ├── help.rs
+    │   ├── host_manager.rs
+    │   └── mod.rs
+    ├── statusline.rs
+    └── tabs.rs      # Host tab bar
 ```
 
-### `types/` module breakdown
-
-The original flat `types.rs` is split by domain to keep each file focused and to reduce merge conflicts when types evolve independently.
-
+### `model/` module breakdown
 | File | Contents |
 |---|---|
-| `types/mod.rs` | `pub use` re-exports from all sub-modules; only file external modules import from |
-| `types/app.rs` | `AppState`, `AppMode`, `PendingAction`, `StatusMessage`, `MessageLevel` |
-| `types/container.rs` | `ContainerInfo`, `ContainerState`, `PortBinding` |
-| `types/host.rs` | `HostConfig`, `ConnectionType`, `TlsConfig`, `HostState`, `HostStatus` |
-| `types/messages.rs` | `HostUpdate`, `HostCommand`, `AppEvent`, `PaletteAction` |
+| `model/mod.rs` | `pub use` re-exports from all sub-modules; only file external modules import from |
+| `model/app.rs` | `AppState`, `AppMode`, `PendingAction`, `StatusMessage`, `MessageLevel` |
+| `model/container.rs` | `ContainerInfo`, `ContainerState`, `PortBinding` |
+| `model/host.rs` | `HostConfig`, `ConnectionType`, `TlsConfig`, `HostState`, `HostStatus` |
+| `model/messages.rs` | `HostUpdate`, `HostCommand`, `AppEvent`, `PaletteAction` |
