@@ -6,7 +6,7 @@ use std::collections::VecDeque;
 
 const SPARKLINE_LEN: usize = 60;
 
-#[derive(Debug, PartialEq, Clone, Eq)]
+#[derive(Debug, PartialEq, Clone, Eq, Copy)]
 pub enum ContainerState {
     Running,
     Paused,

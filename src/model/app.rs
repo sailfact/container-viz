@@ -2,7 +2,7 @@ use tokio::sync::mpsc;
 use std::collections::VecDeque;
 use super::*;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum AppMode {
     Normal,
     Logs,
@@ -36,7 +36,7 @@ pub struct AppState {
     pub show_details:       bool,
     pub pending_action:     Option<PendingAction>,
     pub command_query:      String,
-    pub status_messages:    Option<StatusMessage>,
+    pub status_message:    Option<StatusMessage>,
     pub log_scroll:         u16,
 }
 

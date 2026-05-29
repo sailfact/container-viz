@@ -5,15 +5,9 @@ pub mod statusline;
 pub mod tabs;
 pub mod overlays;
 
-use ratatui::layout::{Constraint, Layout, Rect };
+use ratatui::layout::{Constraint, Layout };
 use ratatui::prelude::{Frame};
 use crate::{AppMode, AppState};
-
-struct Regions {
-    tabs: Rect,
-    body: Rect,
-    status: Rect,
-}
 
 pub fn render(f: &mut Frame, state: &AppState) {
     let chunks = Layout::vertical([
@@ -27,21 +21,10 @@ pub fn render(f: &mut Frame, state: &AppState) {
 
     tabs::render(f, tabs_area, state);
     container_list::render(f, body_area, state.active_host());
-    statusline::render(f, status_area, &mut state);
+    statusline::render(f, status_area, state);
 
     // 3. overlays go last, painted on top of everything
     render_overlays(f, state);
-}
-
-fn build_layout(area: Rect) -> Regions {
-    /let [tabs, body, status] = Layout::vertical([
-        Constraint::Length(1), // tab bar — fixed 1 row
-        Constraint::Min(0),    // body — takes everything left over
-        Constraint::Length(1), // statusline — fixed 1 row
-    ])
-    .areas(area);
-
-    Regions { tabs, body, status }
 }
 
 fn render_overlays(f: &mut Frame, state: &AppState) {

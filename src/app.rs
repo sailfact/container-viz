@@ -28,7 +28,7 @@ impl AppState {
             show_details: false, 
             pending_action: None, 
             command_query: String::new(), 
-            status_messages: None, 
+            status_message: None, 
             log_scroll: 0,
         }
     }
@@ -158,7 +158,7 @@ impl AppState {
     }
     // set_status
     pub fn set_status(&mut self, text: String, level: MessageLevel) {
-        self.status_messages = Some(StatusMessage {
+        self.status_message = Some(StatusMessage {
             text,
             level,
             ttl_ticks: 3,
@@ -166,10 +166,10 @@ impl AppState {
     }
     // tick_status
     pub fn tick_status(&mut self) {
-        if let Some(msg) = &mut self.status_messages {
+        if let Some(msg) = &mut self.status_message {
             msg.decrement();
             if msg.is_expired() {
-                self.status_messages = None;
+                self.status_message = None;
             }
         }
     }
